@@ -46,10 +46,7 @@ def download_song(yt_id):
     return static_file(os.path.basename(song['path']),
                        root=settings.save_audio_path,
                        mimetype="audio/mpeg",
-                       download=song['title']+".mp3")
-    # / download / {{song['yt_id']}}
-    # database = Database.get_database()
-    # song = database.get_song(yt_id)
+                       download=song['title'])
 
 
 @route('/style.css')

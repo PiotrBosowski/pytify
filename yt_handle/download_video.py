@@ -5,7 +5,9 @@ import threading
 from browsers.chrome import bookmarks_handler
 from database.database import Database
 from moviepy.editor import *
+import re
 
+DL_ENGINE = 'yt-dlp'
 
 class DownloadWorker(threading.Thread):
     def __init__(self, queue):
@@ -38,7 +40,7 @@ def urls_in_folder(folder, url_list):
 
     for child in folder.folders:
         urls_in_folder(child, url_list)
-    
+
 def download_video(url):
     """
     Downloads a video from youtube.
@@ -61,30 +63,100 @@ def download_video(url):
         print('[+] Downloaded!')
     except:
         print('[-] Something went wrong...')
-    
+
+
+class MyLogger(object):
+    def debug(self, msg):
+        pass
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        print(msg)
+
+
+def my_hook(d):
+    if d['status'] == 'finished':
+        print('Done downloading, now converting ...')
+
+
+class PPHook:
+    def __init__(self):
+        self.output_filename=None
+
+    def __call__(self, pp):
+        if pp['postprocessor'] == 'MoveFiles' and pp['status'] == 'started':
+            self.output_filename = pp['info_dict']['filepath']
+
+
 def download_video_as_mp3(url):
     """
     Downloads a video and converts it to the .mp3 format.
     :params url: Url of the youtube video.
     """
     os.makedirs(settings.save_audio_path, exist_ok=True)
-    youtube = pytube.YouTube(url)
-    video = youtube.streams.filter(only_audio=True).first()
-    video.download(output_path=settings.save_audio_path)
+    if DL_ENGINE == 'pytube':
+        youtube = pytube.YouTube(url)
+        video = youtube.streams.filter(only_audio=True).first()
+        video.download(output_path=settings.save_audio_path)
 
-    default_filename = video.default_filename
-    video_path = os.path.join(settings.save_audio_path, default_filename)
-    clip = AudioFileClip(video_path)
+        default_filename = video.default_filename
+        video_path = os.path.join(settings.save_audio_path, default_filename)
+        clip = AudioFileClip(video_path)
 
-    audio_path = os.path.splitext(video_path)[0] + '.mp3'
-    clip.write_audiofile(audio_path)
-    clip.close()
-    os.remove(video_path)
-    print('[+] Downloaded!')
-    filename = os.path.splitext(default_filename)[0]
+        file_path = os.path.splitext(video_path)[0] + '.mp3'
+        clip.write_audiofile(file_path)
+        clip.close()
+        os.remove(video_path)
+        print('[+] Downloaded!')
+        filename = os.path.splitext(default_filename)[0]
+    if DL_ENGINE == 'youtube-dl':
+        import youtube_dl
+        ydl_opts = {
+            'extract_audio': True,
+            'audio_format': 'wav',
+            'format': 'bestaudio/best',
+            'restrict_filenames': True,
+            'outtmpl': f'{settings.save_audio_path}/%(title)s.%(ext)s',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'logger': MyLogger(),
+            'progress_hooks': [my_hook],
+        }
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            file_path = ydl.prepare_filename(info)
+            filename = os.path.basename(file_path)
+            ydl.process_info(info)  # starts the download
+    if DL_ENGINE == 'yt-dlp':
+        from yt_dlp import YoutubeDL
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            # 'quiet': True,
+            'lazy_playlist': True,
+            'noplaylist': True,
+            'restrictfilenames': True,
+            'outtmpl': f'{settings.save_audio_path}/%(title)s.%(ext)s',
+            'postprocessors': [{  # Extract audio using ffmpeg
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'wav',
+            }]
+        }
+        with YoutubeDL(ydl_opts) as ydl:
+            output_filepath_hook = PPHook()
+            result = ydl.add_postprocessor_hook(output_filepath_hook)
+            info = ydl.extract_info(url, download=False)
+            print(f'Downloading {info["title"]}...')
+            error_code = ydl.download(url)
+            filepath = output_filepath_hook.output_filename
+            filename = os.path.basename(filepath)
     #add database
     database = Database.get_database()
-    database.add_record_thread_safe(url, audio_path, filename)
+    database.add_record_thread_safe(url, filepath, filename)
 
 
 def download_from_bookmarks(bookmark_name, n_of_threads=1):
@@ -95,6 +167,11 @@ def download_from_bookmarks(bookmark_name, n_of_threads=1):
     :return: True if there were urls in bookmark folder. False if the bookmark folder was empty.
     """
     urls = bookmarks_handler.get_list_of_urls(bookmark_name)
+    with open('bookmarks_27.06.2023.html', 'r') as file:
+        content = file.read()
+        pattern = '\"https://www.youtube.com[^\s]*\"'
+        urls = re.findall(pattern, content)
+        urls = [url[1:-1] for url in urls]
     # download_with_threads(urls, use_threads)
     print(urls)
     if urls:
@@ -137,11 +214,13 @@ def download_video_if_not_exist(url):
     #check if url exists in database
     database = Database.get_database()
     if not database.check_if_exist(url):
-        download_video_as_mp3(url)
+        try:
+            download_video_as_mp3(url)
+        except:
+            print(f'[X] Failed to download the file from {url}')
     else:
         print('[*] Url already exists in database.')
 
 
-# use __name__ == '__main__' to prevent unintended running
 if __name__ == '__main__':
     download_from_bookmarks('muzaaaaa', 3)
