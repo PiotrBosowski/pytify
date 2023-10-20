@@ -2,12 +2,11 @@ import pytube
 import queue
 import settings
 import threading
-from browsers.chrome import bookmarks_handler
 from database.database import Database
 from moviepy.editor import *
-import re
 
 DL_ENGINE = 'yt-dlp'
+
 
 class DownloadWorker(threading.Thread):
     def __init__(self, queue):
@@ -24,9 +23,6 @@ class DownloadWorker(threading.Thread):
                 self.queue.task_done()
 
 
-#url = 'https://www.youtube.com/watch?v=Cpdw4mVSJdc'
-#(song_url TEXT, path TEXT, title TEXT)
-
 def urls_in_folder(folder, url_list):
     """
     Generates the list of urls in folder.
@@ -34,12 +30,11 @@ def urls_in_folder(folder, url_list):
     :param url_list: List of urls.
     """
     for url in folder.urls:
-        #print(url['url'], end=' ')
-        #print(url['name'])
         url_list.append(url['url'])
 
     for child in folder.folders:
         urls_in_folder(child, url_list)
+
 
 def download_video(url):
     """
@@ -55,7 +50,6 @@ def download_video(url):
     file_path_name = cwd + '/' + name
     mp3_file = file_path_name.strip('.mp4') + '.mp3'
 
-    #video = youtube.streams.filter(only_audio=True).first()
     video = youtube.streams.filter(res='720p').first()
 
     try:
@@ -83,7 +77,7 @@ def my_hook(d):
 
 class PPHook:
     def __init__(self):
-        self.output_filename=None
+        self.output_filename = None
 
     def __call__(self, pp):
         if pp['postprocessor'] == 'MoveFiles' and pp['status'] == 'started':
@@ -154,38 +148,8 @@ def download_video_as_mp3(url):
             error_code = ydl.download(url)
             filepath = output_filepath_hook.output_filename
             filename = os.path.basename(filepath)
-    #add database
     database = Database.get_database()
     database.add_record_thread_safe(url, filepath, filename)
-
-
-def download_from_bookmarks(bookmark_name, n_of_threads=1):
-    """
-    Downloads all links from the bookmark folder.
-    :param bookmark_name: Name of the bookmark folder.
-    :param n_of_threads: Number of threads that will be used in download process.
-    :return: True if there were urls in bookmark folder. False if the bookmark folder was empty.
-    """
-    urls = bookmarks_handler.get_list_of_urls(bookmark_name)
-    with open('bookmarks_27.06.2023.html', 'r') as file:
-        content = file.read()
-        pattern = '\"https://www.youtube.com[^\s]*\"'
-        urls = re.findall(pattern, content)
-        urls = [url[1:-1] for url in urls]
-    # download_with_threads(urls, use_threads)
-    print(urls)
-    if urls:
-        que = queue.Queue()
-        for x in range(n_of_threads):
-            worker = DownloadWorker(que)
-            worker.daemon = True
-            worker.start()
-        for u in urls:
-            que.put(u)
-        que.join()
-        return True
-    else:
-        return False
 
 
 def download_with_threads(video_links, use_threads=False):
@@ -199,19 +163,21 @@ def download_with_threads(video_links, use_threads=False):
         que = queue.Queue()
         threads = []
         for video in video_links:
-            t = threading.Thread(target=download_video_if_not_exist, args=(video, ))
+            t = threading.Thread(target=download_video_if_not_exist,
+                                 args=(video,))
             threads.append(t)
             t.start()
     else:
         for video in video_links:
             tuple_list.append(download_video_if_not_exist(video))
 
+
 def download_video_if_not_exist(url):
     """
-    Checks if following url already exists in the database. If so, it is not being downloaded.
+    Checks if following url already exists in the database. If so, it
+    is not being downloaded.
     :param url: Url that is being checked.
     """
-    #check if url exists in database
     database = Database.get_database()
     if not database.check_if_exist(url):
         try:
@@ -220,7 +186,3 @@ def download_video_if_not_exist(url):
             print(f'[X] Failed to download the file from {url}')
     else:
         print('[*] Url already exists in database.')
-
-
-if __name__ == '__main__':
-    download_from_bookmarks('muzaaaaa', 3)
