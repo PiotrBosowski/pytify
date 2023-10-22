@@ -1,0 +1,10 @@
+version: '3.5'
+services:
+  pytify:
+    build: .
+    container_name: pytify
+    network_mode: 'host'
+    volumes:
+      - /home/peter/opt/pytify/data:/home/.data
+    restart: 'unless-stopped'
+
