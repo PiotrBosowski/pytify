@@ -1,7 +1,7 @@
 import settings
 from database.database import Database
 from yt_handle.download_video import download_video_if_not_exist
-from yt_handle.download_video import download_from_bookmarks
+# from yt_handle.download_video import download_from_bookmarks
 from bottle import *
 
 
@@ -72,16 +72,16 @@ def add_song():
     return index()
 
 
-@post('/bookmark_download')
-@view('index')
-def bookmark_download():
-    """
-    Downloads all videos from the bookmark.
-
-    :return: index with status
-    """
-    status = download_from_bookmarks(request.forms.bookmark_path)
-    return index(status)
+# @post('/bookmark_download')
+# @view('index')
+# def bookmark_download():
+#     """
+#     Downloads all videos from the bookmark.
+#
+#     :return: index with status
+#     """
+#     status = download_from_bookmarks(request.forms.bookmark_path)
+#     return index(status)
 
 
 if __name__ == "__main__":

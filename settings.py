@@ -7,7 +7,8 @@ save_audio_path = r'./.data/audio'
 database_path = r'./.data/database'
 
 """host under which the webserver will run"""
-host = 'localhost'
+host = '0.0.0.0'
 
 """port"""
-port = 8080
+port = 5001
+
