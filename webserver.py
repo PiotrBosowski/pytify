@@ -28,7 +28,7 @@ def index(bookmark_success=None):
     """
     database = Database.get_database()
     return template('index.html',
-                    title="What a PiTify!",
+                    title="What a PyTify!",
                     songs=database.list_all(),
                     bookmark_success=bookmark_success)
 
