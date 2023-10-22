@@ -2,6 +2,8 @@
 
 ## Setup:
 
+
+### Bare-metal run:
 * make sure to use Python 3
 
 - `python -m venv .venv`
@@ -13,5 +15,10 @@
 * (optionally) modify `settings.py` file
   
 * run `python webserver.py`
+
+### Dockerize run:
+
+- `docker build -t "pytify:latest" .`
+- `docker run -d -p 5001:5001 --mount type=bind,src=/home/peter/opt/pytify/data,target=/home/.data pytify`
 
 ### Ptui!
