@@ -5,6 +5,6 @@ services:
     ports: 
       - 5001:5001
     volumes:
-      - /mnt/media/music/pytify:/var/data
+      - /mnt/media/music/pytify:/var/data/audio
     restart: 'unless-stopped'
 
