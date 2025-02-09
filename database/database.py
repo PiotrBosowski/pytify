@@ -18,11 +18,8 @@ class Database:
         self.connection = sqlite3.connect(os.path.join(settings.database_path, 'pityfy.db'))
         self.connection.row_factory = self.dict_factory
         with closing(self.connection.cursor()) as cursor:
-        cursor = 
-        table = """CREATE TABLE IF NOT EXISTS
-        songs(song_url TEXT, yt_id TEXT, path TEXT, title TEXT, date TEXT)"""
-        cursor.execute(table)
-        cursor.close()
+            table = "CREATE TABLE IF NOT EXISTS songs(song_url TEXT, yt_id TEXT, path TEXT, title TEXT, date TEXT)"
+            cursor.execute(table)
         self.connection.commit()
 
     def add_record(self, song_url, path, title):
@@ -33,10 +30,10 @@ class Database:
         :param path: Path where song will be saved.
         :param title: Song title.
         """
-        cursor = self.connection.cursor()
-        date = Database.get_current_date()
-        yt_id = self.get_yt_id(song_url)
-        cursor.execute("INSERT INTO songs VALUES (?,?,?,?,?)", (song_url, yt_id, path, title, date))
+        with closing(self.connection.cursor()) as cursor:
+            date = Database.get_current_date()
+            yt_id = self.get_yt_id(song_url)
+            cursor.execute("INSERT INTO songs VALUES (?,?,?,?,?)", (song_url, yt_id, path, title, date))
         self.connection.commit()
 
     def add_record_thread_safe(self, song_url, path, title):
@@ -48,10 +45,10 @@ class Database:
         :param title: Song title.
         """
         connection = sqlite3.connect(os.path.join(settings.database_path, 'pityfy.db'))
-        cursor = connection.cursor()
-        date = Database.get_current_date()
-        yt_id = self.get_yt_id(song_url)
-        cursor.execute("INSERT INTO songs VALUES (?,?,?,?,?)", (song_url, yt_id, path, title, date))
+        with closing(self.connection.cursor()) as cursor:
+            date = Database.get_current_date()
+            yt_id = self.get_yt_id(song_url)
+            cursor.execute("INSERT INTO songs VALUES (?,?,?,?,?)", (song_url, yt_id, path, title, date))
         connection.commit()
 
     def list_all(self):
@@ -60,9 +57,9 @@ class Database:
 
         :return: List of all songs.
         """
-        cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM songs")
-        results = cursor.fetchall()
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute("SELECT * FROM songs")
+            results = cursor.fetchall()
         return results
 
     def get_song(self, yt_id):
@@ -71,9 +68,9 @@ class Database:
 
         :param yt_id: YouTube link id.
         """
-        cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM songs WHERE yt_id = ?", (yt_id,))
-        return cursor.fetchone()
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute("SELECT * FROM songs WHERE yt_id = ?", (yt_id,))
+            return cursor.fetchone()
 
     def check_if_exist(self, url):
         """
@@ -83,9 +80,8 @@ class Database:
         :return: Information if song exists in database.
         """
         yt_id = self.get_yt_id(url)
-        connection = sqlite3.connect(os.path.join(settings.database_path, 'pityfy.db'))
-        cursor = connection.cursor()
-        return cursor.execute("SELECT * FROM songs WHERE yt_id = ?", (yt_id,)).fetchone()
+        with closing(self.connection.cursor()) as cursor:
+            return cursor.execute("SELECT * FROM songs WHERE yt_id = ?", (yt_id,)).fetchone()
 
     @staticmethod
     def dict_factory(cursor, row):
@@ -139,3 +135,4 @@ class Database:
         :return: Current date.
         """
         return datetime.now().strftime("%Y/%m/%d, %H:%M:%S")
+
