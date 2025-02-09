@@ -1,7 +1,6 @@
-import settings
-from database.database import Database
-from yt_handle.download_video import download_video_if_not_exist
-# from yt_handle.download_video import download_from_bookmarks
+import pytify.settings as settings
+from pytify.database.database import Database
+from pytify.yt_handle.download_video import download_video_if_not_exist
 from bottle import *
 
 
@@ -27,7 +26,7 @@ def index(bookmark_success=None):
     :return: Template index.html
     """
     database = Database.get_database()
-    return template('index.html',
+    return template('pytify/views/index.html',
                     title="What a PyTify!",
                     songs=database.list_all(),
                     bookmark_success=bookmark_success)
@@ -56,7 +55,7 @@ def send_style():
 
     :return: style.css
     """
-    return static_file('style.css', root='staticfiles')
+    return static_file('style.css', root='pytify/staticfiles')
 
 
 @post('/add')
@@ -83,6 +82,5 @@ def add_song():
 #     status = download_from_bookmarks(request.forms.bookmark_path)
 #     return index(status)
 
-
-if __name__ == "__main__":
+def main():
     run(host=settings.host, port=settings.port)

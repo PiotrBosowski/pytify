@@ -1,13 +1,17 @@
-FROM python:latest
-MAINTAINER Piotr Bosowski "piotr.bosowski@gmail.com"
+FROM python:3.11-slim
 
-WORKDIR /home
+WORKDIR /app
 
-RUN apt update && apt install -y ffmpeg
+ENV POETRY_VERSION=2.0 \
+    PYTIFY_PORT=5001
 
-ADD requirements.txt .
-RUN pip install -r requirements.txt
 
-ADD . ./
+RUN apt update && apt install -y ffmpeg curl
 
-CMD [ "python", "./webserver.py" ]
+RUN pip install poetry==$POETRY_VERSION
+    
+COPY . .
+
+RUN poetry install --no-root --no-interaction --no-ansi
+
+CMD [ "poetry", "run", "python", "main.py" ]
