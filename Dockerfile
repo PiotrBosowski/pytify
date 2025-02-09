@@ -1,13 +1,19 @@
-FROM python:latest
-MAINTAINER Piotr Bosowski "piotr.bosowski@gmail.com"
+FROM python:3.11-slim
 
-WORKDIR /home
+WORKDIR /app
 
-RUN apt update && apt install -y ffmpeg
+ENV POETRY_VERSION=1.8.2 \
+    POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    PATH="$POETRY_HOME/bin:$PATH" \
+    PYTIFY_PORT=5001
 
-ADD requirements.txt .
-RUN pip install -r requirements.txt
 
-ADD . ./
+RUN apt update && apt install -y ffmpeg && \
+    curl -sSL https://install.python-poetry.org | python3 -
+    
+COPY . .
 
-CMD [ "python", "./webserver.py" ]
+RUN poetry install --no-root --no-interaction --no-ansi
+
+CMD [ "poetry", "run", "python", "webserver.py" ]

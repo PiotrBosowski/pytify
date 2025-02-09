@@ -1,5 +1,9 @@
 """huj"""
 
+
+import os
+
+
 """saved songs will be stored here:"""
 save_audio_path = r'./.data/audio'
 
@@ -10,5 +14,5 @@ database_path = r'./.data/database'
 host = '0.0.0.0'
 
 """port"""
-port = 5001
+port = os.environ['PYTIFY_PORT']
 
