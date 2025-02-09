@@ -15,6 +15,7 @@ class Database:
     def __init__(self):
         """Initialize the database (Singleton)."""
         os.makedirs(settings.database_path, exist_ok=True)
+        os.makedirs(settings.save_audio_path, exist_ok=True)
         self.db_path = os.path.join(settings.database_path, 'pytify.db')
 
     def get_connection(self):
