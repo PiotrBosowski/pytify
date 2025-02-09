@@ -2,15 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-ENV POETRY_VERSION=1.8.2 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    PATH="$POETRY_HOME/bin:$PATH" \
+ENV POETRY_VERSION=2.0 \
     PYTIFY_PORT=5001
 
 
-RUN apt update && apt install -y ffmpeg && \
-    curl -sSL https://install.python-poetry.org | python3 -
+RUN apt update && apt install -y ffmpeg curl
+
+RUN pip install poetry==$POETRY_VERSION
     
 COPY . .
 
