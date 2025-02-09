@@ -14,4 +14,4 @@ COPY . .
 
 RUN poetry install --no-root --no-interaction --no-ansi
 
-CMD [ "poetry", "run", "python", "webserver.py" ]
+CMD [ "poetry", "run", "python", "main.py" ]
