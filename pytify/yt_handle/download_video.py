@@ -1,8 +1,9 @@
+import os
 import pytube
 import queue
-import settings
+import pytify.settings as settings
 import threading
-from database.database import Database
+from pytify.database.database import Database
 # from moviepy.editor import *
 
 DL_ENGINE = 'yt-dlp'
@@ -182,7 +183,7 @@ def download_video_if_not_exist(url):
     if not database.check_if_exist(url):
         try:
             download_video_as_mp3(url)
-        except:
-            print(f'[X] Failed to download the file from {url}')
+        except Exception as ex:
+            print(f'[X] Failed to download the file from {url}. Details:\n{ex}')
     else:
         print('[*] Url already exists in database.')

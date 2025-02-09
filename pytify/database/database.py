@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from datetime import datetime
-import settings
+import pytify.settings as settings
 from urllib.parse import urlparse, parse_qs
 from contextlib import closing
 

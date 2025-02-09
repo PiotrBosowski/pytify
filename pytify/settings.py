@@ -14,5 +14,5 @@ database_path = r'./.data/database'
 host = '0.0.0.0'
 
 """port"""
-port = os.environ['PYTIFY_PORT']
+port = os.environ.get('PYTIFY_PORT', 5001)
 
