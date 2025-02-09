@@ -3,7 +3,6 @@ import sqlite3
 from datetime import datetime
 import settings
 from urllib.parse import urlparse, parse_qs
-
 from contextlib import closing
 
 class Database:
@@ -14,125 +13,81 @@ class Database:
     database = None
 
     def __init__(self):
+        """Initialize the database (Singleton)."""
         os.makedirs(settings.database_path, exist_ok=True)
-        self.connection = sqlite3.connect(os.path.join(settings.database_path, 'pityfy.db'))
-        self.connection.row_factory = self.dict_factory
-        with closing(self.connection.cursor()) as cursor:
-            table = "CREATE TABLE IF NOT EXISTS songs(song_url TEXT, yt_id TEXT, path TEXT, title TEXT, date TEXT)"
-            cursor.execute(table)
-        self.connection.commit()
+        self.db_path = os.path.join(settings.database_path, 'pytify.db')
+
+    def get_connection(self):
+        """Return a new database connection with dict_factory enabled."""
+        conn = sqlite3.connect(self.db_path, timeout=10, check_same_thread=False)
+        conn.row_factory = self.dict_factory
+        return conn
+
+    def create_table(self):
+        """Create the songs table if it does not exist."""
+        with self.get_connection() as conn, closing(conn.cursor()) as cursor:
+            cursor.execute(
+                """CREATE TABLE IF NOT EXISTS songs (
+                    song_url TEXT PRIMARY KEY, 
+                    yt_id TEXT, 
+                    path TEXT, 
+                    title TEXT, 
+                    date TEXT
+                )"""
+            )
+            conn.commit()
 
     def add_record(self, song_url, path, title):
-        """
-        Add record to database.
+        """Add a new record to the database."""
+        date = self.get_current_date()
+        yt_id = self.get_yt_id(song_url)
 
-        :param song_url: YouTube url.
-        :param path: Path where song will be saved.
-        :param title: Song title.
-        """
-        with closing(self.connection.cursor()) as cursor:
-            date = Database.get_current_date()
-            yt_id = self.get_yt_id(song_url)
-            cursor.execute("INSERT INTO songs VALUES (?,?,?,?,?)", (song_url, yt_id, path, title, date))
-        self.connection.commit()
-
-    def add_record_thread_safe(self, song_url, path, title):
-        """
-        Add record to database safe for threads.
-
-        :param song_url: YouTube url.
-        :param path: Path where song will be saved.
-        :param title: Song title.
-        """
-        connection = sqlite3.connect(os.path.join(settings.database_path, 'pityfy.db'))
-        with closing(self.connection.cursor()) as cursor:
-            date = Database.get_current_date()
-            yt_id = self.get_yt_id(song_url)
-            cursor.execute("INSERT INTO songs VALUES (?,?,?,?,?)", (song_url, yt_id, path, title, date))
-        connection.commit()
+        with self.get_connection() as conn, closing(conn.cursor()) as cursor:
+            cursor.execute("INSERT OR IGNORE INTO songs VALUES (?,?,?,?,?)", (song_url, yt_id, path, title, date))
+            conn.commit()
 
     def list_all(self):
-        """
-        Select all records from database.
-
-        :return: List of all songs.
-        """
-        with closing(self.connection.cursor()) as cursor:
+        """Retrieve all records."""
+        with self.get_connection() as conn, closing(conn.cursor()) as cursor:
             cursor.execute("SELECT * FROM songs")
-            results = cursor.fetchall()
-        return results
+            return cursor.fetchall()
 
     def get_song(self, yt_id):
-        """
-        Get song by id from database.
-
-        :param yt_id: YouTube link id.
-        """
-        with closing(self.connection.cursor()) as cursor:
+        """Retrieve a song by YouTube ID."""
+        with self.get_connection() as conn, closing(conn.cursor()) as cursor:
             cursor.execute("SELECT * FROM songs WHERE yt_id = ?", (yt_id,))
             return cursor.fetchone()
 
     def check_if_exist(self, url):
-        """
-        Checking if song exists in database.
-
-        :param url: YouTube link id.
-        :return: Information if song exists in database.
-        """
+        """Check if a song already exists in the database."""
         yt_id = self.get_yt_id(url)
-        with closing(self.connection.cursor()) as cursor:
+        with self.get_connection() as conn, closing(conn.cursor()) as cursor:
             return cursor.execute("SELECT * FROM songs WHERE yt_id = ?", (yt_id,)).fetchone()
 
     @staticmethod
     def dict_factory(cursor, row):
-        """
-        Creates resulting dictionary from cursors description.
-
-        :param cursor: Iterates through database response.
-        :param row: Provides index-based and case-insensitive name-based access to columns.
-        :return: Dictionary
-        """
-        d = {}
-        for idx, col in enumerate(cursor.description):
-            d[col[0]] = row[idx]
-        return d
+        """Convert SQLite row into a dictionary."""
+        return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
     @staticmethod
     def get_yt_id(url):
-        """
-        Analyze Youtube url.
-
-        :param url: YouTube url.
-
-        :return: YouTube video id.
-        """
+        """Extract YouTube video ID from URL."""
         u_pars = urlparse(url)
         quer_v = parse_qs(u_pars.query).get('v')
         if quer_v:
             return quer_v[0]
         pth = u_pars.path.split('/')
-        if pth:
-            return pth[-1]
+        return pth[-1] if pth else None
 
     @staticmethod
     def get_database():
-        """
-        Database - Singleton getter.
-
-        :return: Database object.
-        """
-        if Database.database:
-            return Database.database
-        else:
+        """Singleton pattern for Database instance."""
+        if not Database.database:
             Database.database = Database()
-            return Database.database
+            Database.database.create_table()  # Ensure the table is created at startup
+        return Database.database
 
     @staticmethod
     def get_current_date():
-        """
-        Selecting current date.
-
-        :return: Current date.
-        """
+        """Get the current date and time."""
         return datetime.now().strftime("%Y/%m/%d, %H:%M:%S")
-
