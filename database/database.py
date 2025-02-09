@@ -4,6 +4,7 @@ from datetime import datetime
 import settings
 from urllib.parse import urlparse, parse_qs
 
+from contextlib import closing
 
 class Database:
     """
@@ -16,10 +17,12 @@ class Database:
         os.makedirs(settings.database_path, exist_ok=True)
         self.connection = sqlite3.connect(os.path.join(settings.database_path, 'pityfy.db'))
         self.connection.row_factory = self.dict_factory
-        cursor = self.connection.cursor()
+        with closing(self.connection.cursor()) as cursor:
+        cursor = 
         table = """CREATE TABLE IF NOT EXISTS
         songs(song_url TEXT, yt_id TEXT, path TEXT, title TEXT, date TEXT)"""
         cursor.execute(table)
+        cursor.close()
         self.connection.commit()
 
     def add_record(self, song_url, path, title):
