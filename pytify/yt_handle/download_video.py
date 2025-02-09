@@ -150,7 +150,7 @@ def download_video_as_mp3(url):
             filepath = output_filepath_hook.output_filename
             filename = os.path.basename(filepath)
     database = Database.get_database()
-    database.add_record_thread_safe(url, filepath, filename)
+    database.add_record(url, filepath, filename)
 
 
 def download_with_threads(video_links, use_threads=False):

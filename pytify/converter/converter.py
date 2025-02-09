@@ -1,3 +1,5 @@
+import logging
+
 from moviepy.editor import *
 import os
 
