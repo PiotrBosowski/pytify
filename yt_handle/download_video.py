@@ -3,7 +3,7 @@ import queue
 import settings
 import threading
 from database.database import Database
-from moviepy.editor import *
+# from moviepy.editor import *
 
 DL_ENGINE = 'yt-dlp'
 
